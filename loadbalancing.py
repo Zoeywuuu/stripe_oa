@@ -56,28 +56,38 @@ This problem tests your ability to handle load balancing, disconnection, object 
 
 def route_requests1(numTargets, maxConnectionsPerTarget, requests):
     """
-    Part 1: 基础负载均衡
-    - 选择负载最小的服务器
-    - 平局时选索引最小的
+    Part 2: 处理断开连接
+     - 处理CONNECT和DISCONNECT
+     - DISCONNECT时减少服务器负载
     """
-    serverLoad = [0] * (numTargets + 1)  # 1-based索引
+    serverLoad = [0] * (numTargets + 1)
+    connToServer = {}  # connectionId -> targetIndex
     logs = []
 
     for req in requests:
         parts = req.split(',')
         action, connId, userId, objId = parts
-        
-        # 找负载最小的服务器，平局选索引小的
-        best = 1
-        bestLoad = serverLoad[1]
-        for t in range(2, numTargets + 1):
-            if serverLoad[t] < bestLoad:
-                bestLoad = serverLoad[t]
-                best = t
-        
-        serverLoad[best] += 1
-        logs.append(f"{connId},{userId},{best}")
 
+        if action == "DISCONNECT":
+            if connId in connToServer:
+                target = connToServer[connId]
+                serverLoad[target] -= 1
+                del connToServer[connId]
+                
+        elif action == "CONNECT":
+            # 找负载最小的服务器
+            best = 1
+            bestLoad = serverLoad[1]
+            for t in range(2, numTargets + 1):
+                if serverLoad[t] < bestLoad:
+                    bestLoad = serverLoad[t]
+                    best = t
+
+            # 分配连接
+            serverLoad[best] += 1
+            connToServer[connId] = best
+            logs.append(f"{connId},{userId},{best}")
+            
     return logs
 
 
