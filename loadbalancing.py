@@ -81,280 +81,280 @@ def route_requests1(numTargets, maxConnectionsPerTarget, requests):
     return logs
 
 
-def route_requests2(numTargets, maxConnectionsPerTarget, requests):
-    """
-    Part 2: 处理断开连接
-    - 处理CONNECT和DISCONNECT
-    - DISCONNECT时减少服务器负载
-    """
-    serverLoad = [0] * (numTargets + 1)
-    connToServer = {}  # connectionId -> targetIndex
-    logs = []
+# def route_requests2(numTargets, maxConnectionsPerTarget, requests):
+#     """
+#     Part 2: 处理断开连接
+#     - 处理CONNECT和DISCONNECT
+#     - DISCONNECT时减少服务器负载
+#     """
+#     serverLoad = [0] * (numTargets + 1)
+#     connToServer = {}  # connectionId -> targetIndex
+#     logs = []
 
-    for req in requests:
-        parts = req.split(',')
-        action, connId, userId, objId = parts
+#     for req in requests:
+#         parts = req.split(',')
+#         action, connId, userId, objId = parts
 
-        if action == "DISCONNECT":
-            if connId in connToServer:
-                target = connToServer[connId]
-                serverLoad[target] -= 1
-                del connToServer[connId]
+#         if action == "DISCONNECT":
+#             if connId in connToServer:
+#                 target = connToServer[connId]
+#                 serverLoad[target] -= 1
+#                 del connToServer[connId]
                 
-        elif action == "CONNECT":
-            # 找负载最小的服务器
-            best = 1
-            bestLoad = serverLoad[1]
-            for t in range(2, numTargets + 1):
-                if serverLoad[t] < bestLoad:
-                    bestLoad = serverLoad[t]
-                    best = t
+#         elif action == "CONNECT":
+#             # 找负载最小的服务器
+#             best = 1
+#             bestLoad = serverLoad[1]
+#             for t in range(2, numTargets + 1):
+#                 if serverLoad[t] < bestLoad:
+#                     bestLoad = serverLoad[t]
+#                     best = t
 
-            # 分配连接
-            serverLoad[best] += 1
-            connToServer[connId] = best
-            logs.append(f"{connId},{userId},{best}")
+#             # 分配连接
+#             serverLoad[best] += 1
+#             connToServer[connId] = best
+#             logs.append(f"{connId},{userId},{best}")
             
-    return logs
+#     return logs
 
 
-def route_requests3(numTargets, maxConnectionsPerTarget, requests):
-    """
-    Part 3: 基于对象ID的路由
-    - 相同objectId必须连接到同一服务器
-    - 第一次连接时固定，最后一个断开时释放
-    """
-    serverLoad = [0] * (numTargets + 1)
-    connToServer = {}
-    logs = []
+# def route_requests3(numTargets, maxConnectionsPerTarget, requests):
+#     """
+#     Part 3: 基于对象ID的路由
+#     - 相同objectId必须连接到同一服务器
+#     - 第一次连接时固定，最后一个断开时释放
+#     """
+#     serverLoad = [0] * (numTargets + 1)
+#     connToServer = {}
+#     logs = []
 
-    objectPin = {}      # objectId -> 固定的服务器
-    objectCount = {}    # objectId -> 活跃连接数
+#     objectPin = {}      # objectId -> 固定的服务器
+#     objectCount = {}    # objectId -> 活跃连接数
 
-    for req in requests:
-        parts = req.split(',')
-        action, connId, userId, objId = parts
+#     for req in requests:
+#         parts = req.split(',')
+#         action, connId, userId, objId = parts
 
-        if action == "CONNECT":
-            # 检查对象是否已固定
-            if objId in objectPin:
-                target = objectPin[objId]
-            else:
-                # 按负载最少选择服务器
-                best = 1
-                bestLoad = serverLoad[1]
-                for t in range(2, numTargets + 1):
-                    if serverLoad[t] < bestLoad:
-                        bestLoad = serverLoad[t]
-                        best = t
-                target = best
-                objectPin[objId] = target  # 固定对象到服务器
+#         if action == "CONNECT":
+#             # 检查对象是否已固定
+#             if objId in objectPin:
+#                 target = objectPin[objId]
+#             else:
+#                 # 按负载最少选择服务器
+#                 best = 1
+#                 bestLoad = serverLoad[1]
+#                 for t in range(2, numTargets + 1):
+#                     if serverLoad[t] < bestLoad:
+#                         bestLoad = serverLoad[t]
+#                         best = t
+#                 target = best
+#                 objectPin[objId] = target  # 固定对象到服务器
 
-            # 分配连接
-            serverLoad[target] += 1
-            connToServer[connId] = target
-            logs.append(f"{connId},{userId},{target}")
+#             # 分配连接
+#             serverLoad[target] += 1
+#             connToServer[connId] = target
+#             logs.append(f"{connId},{userId},{target}")
 
-            # 更新对象连接计数
-            objectCount[objId] = objectCount.get(objId, 0) + 1
+#             # 更新对象连接计数
+#             objectCount[objId] = objectCount.get(objId, 0) + 1
 
-        elif action == "DISCONNECT":
-            if connId in connToServer:
-                target = connToServer[connId]
-                serverLoad[target] -= 1
-                del connToServer[connId]
+#         elif action == "DISCONNECT":
+#             if connId in connToServer:
+#                 target = connToServer[connId]
+#                 serverLoad[target] -= 1
+#                 del connToServer[connId]
 
-                # 更新对象连接计数
-                objectCount[objId] -= 1
-                if objectCount[objId] == 0:
-                    # 释放对象固定
-                    del objectCount[objId]
-                    del objectPin[objId]
+#                 # 更新对象连接计数
+#                 objectCount[objId] -= 1
+#                 if objectCount[objId] == 0:
+#                     # 释放对象固定
+#                     del objectCount[objId]
+#                     del objectPin[objId]
 
-    return logs
-
-
-def route_requests4(numTargets, maxConnectionsPerTarget, requests):
-    """
-    Part 4: 最大容量限制
-    - 服务器有最大连接数限制
-    - 超过容量的连接会被拒绝
-    """
-    serverLoad = [0] * (numTargets + 1)
-    connToServer = {}
-    logs = []
-
-    objectPin = {}
-    objectCount = {}
-
-    for req in requests:
-        parts = req.split(',')
-        action, connId, userId, objId = parts
-
-        if action == "CONNECT":
-            # 检查对象是否已固定
-            if objId in objectPin:
-                target = objectPin[objId]
-                if serverLoad[target] >= maxConnectionsPerTarget:
-                    # 固定的服务器已满 -> 拒绝
-                    continue
-            else:
-                # 找负载最少且未满的服务器
-                candidates = []
-                minLoad = float("inf")
-                for t in range(1, numTargets + 1):
-                    if serverLoad[t] < maxConnectionsPerTarget:
-                        if serverLoad[t] < minLoad:
-                            minLoad = serverLoad[t]
-                            candidates = [t]
-                        elif serverLoad[t] == minLoad:
-                            candidates.append(t)
-
-                if not candidates:
-                    # 所有服务器都满 -> 拒绝
-                    continue
-
-                target = min(candidates)  # 平局选索引小的
-                objectPin[objId] = target
-
-            # 分配连接
-            serverLoad[target] += 1
-            connToServer[connId] = target
-            logs.append(f"{connId},{userId},{target}")
-
-            # 更新对象连接计数
-            objectCount[objId] = objectCount.get(objId, 0) + 1
-
-        elif action == "DISCONNECT":
-            if connId in connToServer:
-                target = connToServer[connId]
-                serverLoad[target] -= 1
-                del connToServer[connId]
-
-                # 更新对象连接计数
-                objectCount[objId] -= 1
-                if objectCount[objId] == 0:
-                    del objectCount[objId]
-                    del objectPin[objId]
-
-    return logs
+#     return logs
 
 
-def route_requests(numTargets, maxConnectionsPerTarget, requests):
-    """
-    Part 5: 服务器关闭
-    - 处理SHUTDOWN命令
-    - 关闭服务器上的连接需要重新路由
-    - 按connectionId升序重新路由
-    """
-    serverLoad = [0] * (numTargets + 1)
-    connToServer = {}
-    logs = []
+# def route_requests4(numTargets, maxConnectionsPerTarget, requests):
+#     """
+#     Part 4: 最大容量限制
+#     - 服务器有最大连接数限制
+#     - 超过容量的连接会被拒绝
+#     """
+#     serverLoad = [0] * (numTargets + 1)
+#     connToServer = {}
+#     logs = []
 
-    objectPin = {}
-    objectCount = {}
-    connMeta = {}  # 保存连接的元数据
+#     objectPin = {}
+#     objectCount = {}
 
-    for req in requests:
-        parts = req.split(',')
-        action = parts[0]
+#     for req in requests:
+#         parts = req.split(',')
+#         action, connId, userId, objId = parts
 
-        if action == "CONNECT":
-            _, connId, userId, objId = parts
-            connMeta[connId] = (userId, objId)
+#         if action == "CONNECT":
+#             # 检查对象是否已固定
+#             if objId in objectPin:
+#                 target = objectPin[objId]
+#                 if serverLoad[target] >= maxConnectionsPerTarget:
+#                     # 固定的服务器已满 -> 拒绝
+#                     continue
+#             else:
+#                 # 找负载最少且未满的服务器
+#                 candidates = []
+#                 minLoad = float("inf")
+#                 for t in range(1, numTargets + 1):
+#                     if serverLoad[t] < maxConnectionsPerTarget:
+#                         if serverLoad[t] < minLoad:
+#                             minLoad = serverLoad[t]
+#                             candidates = [t]
+#                         elif serverLoad[t] == minLoad:
+#                             candidates.append(t)
 
-            # 对象是否已固定？
-            if objId in objectPin:
-                target = objectPin[objId]
-                if serverLoad[target] >= maxConnectionsPerTarget:
-                    continue  # 拒绝
-            else:
-                # 找负载最少且未满的服务器
-                candidates = []
-                minLoad = float("inf")
-                for t in range(1, numTargets + 1):
-                    if serverLoad[t] < maxConnectionsPerTarget:
-                        if serverLoad[t] < minLoad:
-                            minLoad = serverLoad[t]
-                            candidates = [t]
-                        elif serverLoad[t] == minLoad:
-                            candidates.append(t)
+#                 if not candidates:
+#                     # 所有服务器都满 -> 拒绝
+#                     continue
+
+#                 target = min(candidates)  # 平局选索引小的
+#                 objectPin[objId] = target
+
+#             # 分配连接
+#             serverLoad[target] += 1
+#             connToServer[connId] = target
+#             logs.append(f"{connId},{userId},{target}")
+
+#             # 更新对象连接计数
+#             objectCount[objId] = objectCount.get(objId, 0) + 1
+
+#         elif action == "DISCONNECT":
+#             if connId in connToServer:
+#                 target = connToServer[connId]
+#                 serverLoad[target] -= 1
+#                 del connToServer[connId]
+
+#                 # 更新对象连接计数
+#                 objectCount[objId] -= 1
+#                 if objectCount[objId] == 0:
+#                     del objectCount[objId]
+#                     del objectPin[objId]
+
+#     return logs
+
+
+# def route_requests(numTargets, maxConnectionsPerTarget, requests):
+#     """
+#     Part 5: 服务器关闭
+#     - 处理SHUTDOWN命令
+#     - 关闭服务器上的连接需要重新路由
+#     - 按connectionId升序重新路由
+#     """
+#     serverLoad = [0] * (numTargets + 1)
+#     connToServer = {}
+#     logs = []
+
+#     objectPin = {}
+#     objectCount = {}
+#     connMeta = {}  # 保存连接的元数据
+
+#     for req in requests:
+#         parts = req.split(',')
+#         action = parts[0]
+
+#         if action == "CONNECT":
+#             _, connId, userId, objId = parts
+#             connMeta[connId] = (userId, objId)
+
+#             # 对象是否已固定？
+#             if objId in objectPin:
+#                 target = objectPin[objId]
+#                 if serverLoad[target] >= maxConnectionsPerTarget:
+#                     continue  # 拒绝
+#             else:
+#                 # 找负载最少且未满的服务器
+#                 candidates = []
+#                 minLoad = float("inf")
+#                 for t in range(1, numTargets + 1):
+#                     if serverLoad[t] < maxConnectionsPerTarget:
+#                         if serverLoad[t] < minLoad:
+#                             minLoad = serverLoad[t]
+#                             candidates = [t]
+#                         elif serverLoad[t] == minLoad:
+#                             candidates.append(t)
                             
-                if not candidates:
-                    continue  # 拒绝
+#                 if not candidates:
+#                     continue  # 拒绝
                     
-                target = min(candidates)
-                objectPin[objId] = target
+#                 target = min(candidates)
+#                 objectPin[objId] = target
 
-            serverLoad[target] += 1
-            connToServer[connId] = target
-            objectCount[objId] = objectCount.get(objId, 0) + 1
-            logs.append(f"{connId},{userId},{target}")
+#             serverLoad[target] += 1
+#             connToServer[connId] = target
+#             objectCount[objId] = objectCount.get(objId, 0) + 1
+#             logs.append(f"{connId},{userId},{target}")
 
-        elif action == "DISCONNECT":
-            _, connId, userId, objId = parts
-            if connId in connToServer:
-                target = connToServer[connId]
-                serverLoad[target] -= 1
-                del connToServer[connId]
+#         elif action == "DISCONNECT":
+#             _, connId, userId, objId = parts
+#             if connId in connToServer:
+#                 target = connToServer[connId]
+#                 serverLoad[target] -= 1
+#                 del connToServer[connId]
 
-                objectCount[objId] -= 1
-                if objectCount[objId] == 0:
-                    del objectCount[objId]
-                    del objectPin[objId]
+#                 objectCount[objId] -= 1
+#                 if objectCount[objId] == 0:
+#                     del objectCount[objId]
+#                     del objectPin[objId]
 
-        elif action == "SHUTDOWN":
-            _, shutdownTarget = parts
-            shutdownTarget = int(shutdownTarget)
+#         elif action == "SHUTDOWN":
+#             _, shutdownTarget = parts
+#             shutdownTarget = int(shutdownTarget)
 
-            # 找出所有需要被驱逐的连接
-            evicted = [cid for cid, t in connToServer.items() if t == shutdownTarget]
-            evicted.sort()  # 按connectionId升序重新路由
+#             # 找出所有需要被驱逐的连接
+#             evicted = [cid for cid, t in connToServer.items() if t == shutdownTarget]
+#             evicted.sort()  # 按connectionId升序重新路由
 
-            # 从服务器移除并更新对象计数
-            for cid in evicted:
-                userId, objId = connMeta[cid]
-                serverLoad[shutdownTarget] -= 1
-                del connToServer[cid]
+#             # 从服务器移除并更新对象计数
+#             for cid in evicted:
+#                 userId, objId = connMeta[cid]
+#                 serverLoad[shutdownTarget] -= 1
+#                 del connToServer[cid]
 
-                objectCount[objId] -= 1
-                if objectCount[objId] == 0:
-                    del objectCount[objId]
-                    del objectPin[objId]
+#                 objectCount[objId] -= 1
+#                 if objectCount[objId] == 0:
+#                     del objectCount[objId]
+#                     del objectPin[objId]
 
-            # 重新路由每个被驱逐的连接
-            for cid in evicted:
-                userId, objId = connMeta[cid]
+#             # 重新路由每个被驱逐的连接
+#             for cid in evicted:
+#                 userId, objId = connMeta[cid]
 
-                # 对象是否已固定？
-                if objId in objectPin:
-                    target = objectPin[objId]
-                    if serverLoad[target] >= maxConnectionsPerTarget:
-                        continue  # 拒绝
-                else:
-                    # 找负载最少且未满的服务器
-                    candidates = []
-                    minLoad = float("inf")
-                    for t in range(1, numTargets + 1):
-                        if t == shutdownTarget:
-                            continue  # 不能路由回关闭的服务器
-                        if serverLoad[t] < maxConnectionsPerTarget:
-                            if serverLoad[t] < minLoad:
-                                minLoad = serverLoad[t]
-                                candidates = [t]
-                            elif serverLoad[t] == minLoad:
-                                candidates.append(t)
+#                 # 对象是否已固定？
+#                 if objId in objectPin:
+#                     target = objectPin[objId]
+#                     if serverLoad[target] >= maxConnectionsPerTarget:
+#                         continue  # 拒绝
+#                 else:
+#                     # 找负载最少且未满的服务器
+#                     candidates = []
+#                     minLoad = float("inf")
+#                     for t in range(1, numTargets + 1):
+#                         if t == shutdownTarget:
+#                             continue  # 不能路由回关闭的服务器
+#                         if serverLoad[t] < maxConnectionsPerTarget:
+#                             if serverLoad[t] < minLoad:
+#                                 minLoad = serverLoad[t]
+#                                 candidates = [t]
+#                             elif serverLoad[t] == minLoad:
+#                                 candidates.append(t)
 
-                    if not candidates:
-                        continue  # 拒绝
+#                     if not candidates:
+#                         continue  # 拒绝
                         
-                    target = min(candidates)
-                    objectPin[objId] = target
+#                     target = min(candidates)
+#                     objectPin[objId] = target
 
-                # 分配重新路由的连接
-                serverLoad[target] += 1
-                connToServer[cid] = target
-                objectCount[objId] = objectCount.get(objId, 0) + 1
-                logs.append(f"{cid},{userId},{target}")
+#                 # 分配重新路由的连接
+#                 serverLoad[target] += 1
+#                 connToServer[cid] = target
+#                 objectCount[objId] = objectCount.get(objId, 0) + 1
+#                 logs.append(f"{cid},{userId},{target}")
 
-    return logs
+#     return logs
